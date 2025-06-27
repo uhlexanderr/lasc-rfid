@@ -33,6 +33,29 @@ app.post("/api/students", async (req, res) => {
   }
 });
 
+// Route to get all students
+app.get("/api/students", async (req, res) => {
+  try {
+    const students = await Student.find();
+    res.status(200).json({ students });
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching students", error });
+  }
+});
+
+// Route to get a single student by ID
+app.get("/api/students/:id", async (req, res) => {
+  try {
+    const student = await Student.findById(req.params.id);
+    if (!student) {
+      return res.status(404).json({ message: "Student not found" });
+    }
+    res.status(200).json({ student });
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching student", error });
+  }
+});
+
 app.listen(port,()=>{
     console.log(`server is starting at port ${port}`);
 });

@@ -1,5 +1,7 @@
 import React, { useState } from 'react'
 import axios from 'axios'
+import { storage } from '../firebase'
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 const AddData = () => {
 
@@ -18,22 +20,37 @@ const [inpval, setINP] = useState({
     hideStudent: false,
 })
 
+const [file, setFile] = useState(null);
 const [message, setMessage] = useState("");
 
 const setData = (e) => {
-    const { name, value, type, checked } = e.target;
-    setINP((preval) => ({
-        ...preval,
-        [name]: type === 'checkbox' ? checked : value
-    }));
+    const { name, value, type, checked, files } = e.target;
+    if (type === 'file') {
+        setFile(files[0]);
+    } else {
+        setINP((preval) => ({
+            ...preval,
+            [name]: type === 'checkbox' ? checked : value
+        }));
+    }
 }
 
 const handleSubmit = async (e) => {
     e.preventDefault();
+    let picUrl = "";
+    if (file) {
+        try {
+            const storageRef = ref(storage, `students/${Date.now()}-${file.name}`);
+            await uploadBytes(storageRef, file);
+            picUrl = await getDownloadURL(storageRef);
+        } catch (uploadError) {
+            setMessage("Error uploading image.");
+            return;
+        }
+    }
     try {
-        const dataToSend = { ...inpval, pic: "" };
-        // Use the full backend URL for development. Change this to your production URL when deployed.
-        const res = await axios.post("http://localhost:8003/api/students", dataToSend);
+        const dataToSend = { ...inpval, pic: picUrl };
+        await axios.post("http://localhost:8003/api/students", dataToSend);
         setMessage("Student added successfully!");
         setINP({
             lastName: "",
@@ -49,6 +66,7 @@ const handleSubmit = async (e) => {
             mobileNo: "",
             hideStudent: false,
         });
+        setFile(null);
     } catch (error) {
         setMessage("Error adding student.");
     }
@@ -93,7 +111,7 @@ return (
             </div>
             <div className="col-md-4">
                 <label htmlFor="formFile" className="form-label">Student Picture</label>
-                <input className="form-control" type="file" name="pic" id="formFile" />
+                <input className="form-control" type="file" name="pic" id="formFile" onChange={setData} />
             </div>
             <div className="col-md-2">
                 <label htmlFor="inputSy" className="form-label">School Year</label>

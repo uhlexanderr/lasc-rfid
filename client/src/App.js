@@ -21,6 +21,7 @@ function App() {
         <Route path='/AddData' element={<AddData />} />
         <Route path='/EditData/:id' element={<EditData />} />
         <Route path='/ViewData/:id' element={<ViewData />} />
+        <Route path='/view/:id' element={<ViewData />} />
       </Routes>
     </>
   );

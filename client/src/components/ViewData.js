@@ -8,86 +8,64 @@ import WorkIcon from '@mui/icons-material/Work';
 import PhoneAndroidIcon from '@mui/icons-material/PhoneAndroid';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import { NavLink, useParams, useNavigate } from 'react-router-dom';
+import axios from 'axios';
 
 const ViewData = () => {
-    const [getuserdata, setUserdata] = useState({});
+    const [student, setStudent] = useState(null);
     const { id } = useParams();
     const navigate = useNavigate();
 
-    const getdata = async () => {
+    const getStudent = async () => {
         try {
-            const res = await fetch(`https://crudappreactjs.herokuapp.com/getuser/${id}`, {
-                method: "GET",
-                headers: {
-                    "Content-Type": "application/json"
-                }
-            });
-
-            const data = await res.json();
-
-            if (res.status === 422 || !data) {
-                console.log("error ");
-            } else {
-                setUserdata(data);
-                console.log("get data");
-            }
+            const res = await axios.get(`http://localhost:8003/api/students/${id}`);
+            setStudent(res.data.student);
         } catch (error) {
             console.log("Fetch error:", error);
         }
     };
 
     useEffect(() => {
-        getdata();
+        getStudent();
     }, [id]);
 
-    const deleteuser = async (id) => {
+    const deleteStudent = async (id) => {
         try {
-            const res2 = await fetch(`https://crudappreactjs.herokuapp.com/deleteuser/${id}`, {
-                method: "DELETE",
-                headers: {
-                    "Content-Type": "application/json"
-                }
-            });
-
-            const deletedata = await res2.json();
-
-            if (res2.status === 422 || !deletedata) {
-                console.log("error");
-            } else {
-                console.log("user deleted");
-                navigate("/");
-            }
+            await axios.delete(`http://localhost:8003/api/students/${id}`);
+            navigate("/");
         } catch (error) {
             console.log("Delete error:", error);
         }
     };
 
+    if (!student) return <div>Loading...</div>;
+
     return (
         <div className="container mt-3">
-            <h1 style={{ fontWeight: 400 }}>Welcome Harsh Pathak</h1>
+            <h1 style={{ fontWeight: 400 }}>Student Details</h1>
 
             <Card sx={{ maxWidth: 600 }}>
                 <CardContent>
                     <div className="add_btn">
-                        <NavLink to={`/edit/${getuserdata._id}`}>
+                        <NavLink to={`/edit/${student._id}`}>
                             <button className="btn btn-primary mx-2"><CreateIcon /></button>
                         </NavLink>
-                        <button className="btn btn-danger" onClick={() => deleteuser(getuserdata._id)}>
+                        <button className="btn btn-danger" onClick={() => deleteStudent(student._id)}>
                             <DeleteOutlineIcon />
                         </button>
                     </div>
                     <div className="row">
                         <div className="left_view col-lg-6 col-md-6 col-12">
-                            <img src="/profile.png" style={{ width: 50 }} alt="profile" />
-                            <h3 className="mt-3">Name: <span>{getuserdata.name}</span></h3>
-                            <h3 className="mt-3">Age: <span>{getuserdata.age}</span></h3>
-                            <p className="mt-3"><MailOutlineIcon /> Email: <span>{getuserdata.email}</span></p>
-                            <p className="mt-3"><WorkIcon /> Occupation: <span>{getuserdata.work}</span></p>
+                            <img src={student.pic || "/profile.png"} style={{ width: 100, height: 100, objectFit: 'cover' }} alt="profile" />
+                            <h3 className="mt-3">Name: <span>{student.firstName} {student.middleName} {student.lastName}</span></h3>
+                            <h3 className="mt-3">Grade & Section: <span>{student.grlvl}</span></h3>
+                            <p className="mt-3"><MailOutlineIcon /> LRN: <span>{student.lrn}</span></p>
+                            <p className="mt-3"><WorkIcon /> School Year: <span>{student.sy}</span></p>
                         </div>
                         <div className="right_view col-lg-6 col-md-6 col-12">
-                            <p className="mt-5"><PhoneAndroidIcon /> Mobile: <span>+91 {getuserdata.mobile}</span></p>
-                            <p className="mt-3"><LocationOnIcon /> Location: <span>{getuserdata.add}</span></p>
-                            <p className="mt-3">Description: <span>{getuserdata.desc}</span></p>
+                            <p className="mt-5"><PhoneAndroidIcon /> Mobile: <span>{student.mobileNo}</span></p>
+                            <p className="mt-3"><LocationOnIcon /> Address: <span>{student.address}</span></p>
+                            <p className="mt-3">Parent/Guardian: <span>{student.parentName}</span></p>
+                            <p className="mt-3">RFID: <span>{student.rfid}</span></p>
                         </div>
                     </div>
                 </CardContent>

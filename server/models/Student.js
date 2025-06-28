@@ -12,7 +12,8 @@ const studentSchema = new mongoose.Schema({
   sy: { type: String },
   parentName: { type: String },
   mobileNo: { type: String },
-  hideStudent: { type: Boolean, default: false }
+  archived: { type: Boolean, default: false },
+  archivedAt: { type: Date, default: null }
 });
 
 module.exports = mongoose.model('Student', studentSchema); 

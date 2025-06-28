@@ -17,7 +17,6 @@ const [inpval, setINP] = useState({
     sy: "",
     parentName: "",
     mobileNo: "",
-    hideStudent: false,
 })
 
 const [file, setFile] = useState(null);
@@ -64,7 +63,6 @@ const handleSubmit = async (e) => {
             sy: "",
             parentName: "",
             mobileNo: "",
-            hideStudent: false,
         });
         setFile(null);
     } catch (error) {
@@ -129,14 +127,6 @@ return (
             <div className="col-md-4">
                 <label htmlFor="inputMobileNumber" className="form-label">Mobile Number</label>
                 <input type="text" value={inpval.mobileNo} onChange={setData} name="mobileNo" className="form-control" id="inputMobileNumber" />
-            </div>
-            <div className="col-12">
-                <div className="form-check">
-                    <input className="form-check-input" type="checkbox" id="gridCheck" name="hideStudent" checked={inpval.hideStudent} onChange={setData} />
-                    <label className="form-check-label" htmlFor="gridCheck">
-                        Hide Student Entry
-                    </label>
-                </div>
             </div>
             <div className="col-12">
                 <button type="submit" className="btn btn-primary">Add Student</button>

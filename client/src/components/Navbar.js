@@ -12,18 +12,21 @@ import Button from '@mui/material/Button';
 import Tooltip from '@mui/material/Tooltip';
 import MenuItem from '@mui/material/MenuItem';
 import SchoolIcon from '@mui/icons-material/School';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
-const pages = ['Home', 'Archives'];
-const settings = ['Register', 'Login'];
+const pages = ['Home', 'Archived'];
 
 function ResponsiveAppBar() {
   const [anchorElNav, setAnchorElNav] = React.useState(null);
   const [anchorElUser, setAnchorElUser] = React.useState(null);
+  const { admin, logout, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
 
   const handleOpenNavMenu = (event) => {
     setAnchorElNav(event.currentTarget);
   };
+  
   const handleOpenUserMenu = (event) => {
     setAnchorElUser(event.currentTarget);
   };
@@ -38,11 +41,70 @@ function ResponsiveAppBar() {
 
   const handleNavClick = (page) => {
     handleCloseNavMenu();
+    if (page === 'Home') {
+      navigate('/');
+    } else if (page === 'Archived') {
+      navigate('/archives');
+    }
   };
 
-  const handleSettingClick = (setting) => {
+  const handleUserMenuClick = (action) => {
     handleCloseUserMenu();
+    
+    switch (action) {
+      case 'Profile':
+        navigate('/profile');
+        break;
+      case 'Register':
+        navigate('/register');
+        break;
+      case 'Logout':
+        logout();
+        navigate('/login');
+        break;
+      default:
+        break;
+    }
   };
+
+  // If not authenticated, show minimal navbar
+  if (!isAuthenticated) {
+    return (
+      <AppBar position="static">
+        <Container maxWidth="xl">
+          <Toolbar disableGutters>
+            <SchoolIcon sx={{ display: { xs: 'none', md: 'flex' }, mr: 1 }} />
+            <Typography
+              variant="h6"
+              noWrap
+              component={NavLink}
+              to="/login"
+              sx={{
+                mr: 2,
+                display: { xs: 'none', md: 'flex' },
+                fontFamily: 'monospace',
+                fontWeight: 700,
+                letterSpacing: '.3rem',
+                color: 'inherit',
+                textDecoration: 'none',
+              }}
+            >
+             LASC-RFID
+            </Typography>
+            <Box sx={{ flexGrow: 1 }} />
+            <Button 
+              color="inherit" 
+              component={NavLink} 
+              to="/login"
+              sx={{ color: 'white' }}
+            >
+              Login
+            </Button>
+          </Toolbar>
+        </Container>
+      </AppBar>
+    );
+  }
 
   return (
     <AppBar position="static">
@@ -99,15 +161,7 @@ function ResponsiveAppBar() {
               {pages.map((page) => (
                 <MenuItem key={page} onClick={() => handleNavClick(page)}>
                   <Typography textAlign="center">
-                    {page === 'Home' ? (
-                      <NavLink to="/" style={{ textDecoration: 'none', color: 'inherit' }}>
-                        {page}
-                      </NavLink>
-                    ) : (
-                      <NavLink to="/archives" style={{ textDecoration: 'none', color: 'inherit' }}>
-                        {page}
-                      </NavLink>
-                    )}
+                    {page}
                   </Typography>
                 </MenuItem>
               ))}
@@ -146,10 +200,15 @@ function ResponsiveAppBar() {
             ))}
           </Box>
 
-          <Box sx={{ flexGrow: 0 }}>
+          <Box sx={{ flexGrow: 0, display: 'flex', alignItems: 'center', gap: 2 }}>
+            {/* Admin info */}
+            <Typography variant="body2" sx={{ color: 'white', display: { xs: 'none', md: 'block' } }}>
+              {admin?.email} ({admin?.role})
+            </Typography>
+            
             <Tooltip title="Account settings">
               <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
-                <Avatar alt="User" src="/static/images/avatar/2.jpg" />
+                <Avatar alt={admin?.email} src="/static/images/avatar/2.jpg" />
               </IconButton>
             </Tooltip>
             <Menu
@@ -168,18 +227,21 @@ function ResponsiveAppBar() {
               open={Boolean(anchorElUser)}
               onClose={handleCloseUserMenu}
             >
-              {settings.map((setting) => (
-                <MenuItem key={setting} onClick={() => handleSettingClick(setting)}>
+              <MenuItem onClick={() => handleUserMenuClick('Profile')}>
+                <Typography textAlign="center">
+                  Profile
+                </Typography>
+              </MenuItem>
+              {admin?.role === 'super-admin' && (
+                <MenuItem onClick={() => handleUserMenuClick('Register')}>
                   <Typography textAlign="center">
-                    <NavLink 
-                      to={setting === 'Register' ? '/Register' : '/Login'} 
-                      style={{ textDecoration: 'none', color: 'inherit' }}
-                    >
-                      {setting}
-                    </NavLink>
+                    Create Admin
                   </Typography>
                 </MenuItem>
-              ))}
+              )}
+              <MenuItem onClick={() => handleUserMenuClick('Logout')}>
+                <Typography textAlign="center">Logout</Typography>
+              </MenuItem>
             </Menu>
           </Box>
         </Toolbar>

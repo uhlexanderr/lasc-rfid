@@ -3,6 +3,8 @@ const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const Student = require("./models/Student");
+const { authenticateToken } = require("./middleware/auth");
+const authRoutes = require("./routes/auth");
 const app = express();
 
 app.use(cors());
@@ -15,6 +17,12 @@ mongoose.connect(mongoURI)
   .catch((err) => console.error("MongoDB connection error:", err));
 
 const port = 8003;
+
+// Auth routes (no authentication required for login)
+app.use("/api/auth", authRoutes);
+
+// Protected routes - require admin authentication
+app.use("/api/students", authenticateToken);
 
 // Route to get all students
 app.get("/api/students", async (req, res) => {

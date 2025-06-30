@@ -48,8 +48,44 @@ app.get("/api/students/archived", async (req, res) => {
 app.post("/api/students", async (req, res) => {
   try {
     const studentData = req.body;
+    // Required fields
     if (!studentData.lastName || !studentData.firstName) {
       return res.status(400).json({ message: "lastName and firstName are required" });
+    }
+    // LRN: 12 digits, numbers only
+    if (studentData.lrn && !/^\d{12}$/.test(studentData.lrn)) {
+      return res.status(400).json({ message: "LRN must be exactly 12 digits." });
+    }
+    // Mobile: 11 digits, numbers only
+    if (studentData.mobileNo && !/^\d{11}$/.test(studentData.mobileNo)) {
+      return res.status(400).json({ message: "Mobile number must be exactly 11 digits." });
+    }
+    // RFID: numbers only (allow empty, but if filled must be numbers)
+    if (studentData.rfid && !/^\d+$/.test(studentData.rfid)) {
+      return res.status(400).json({ message: "RFID must be numbers only." });
+    }
+    // LRN: unique
+    if (studentData.lrn) {
+      const lrnExists = await Student.findOne({ lrn: studentData.lrn });
+      if (lrnExists) {
+        return res.status(400).json({ message: "LRN already exists. Please enter a unique LRN." });
+      }
+    }
+    // RFID: unique
+    if (studentData.rfid) {
+      const rfidExists = await Student.findOne({ rfid: studentData.rfid });
+      if (rfidExists) {
+        return res.status(400).json({ message: "RFID already exists. Please enter a unique RFID." });
+      }
+    }
+    // Image size: max 5MB (if pic is base64 or buffer)
+    if (studentData.pic && typeof studentData.pic === 'string' && studentData.pic.length > 0) {
+      // If pic is a base64 string, estimate size
+      const base64Length = studentData.pic.length - (studentData.pic.indexOf(',') + 1);
+      const sizeInBytes = Math.ceil(base64Length * 3 / 4);
+      if (sizeInBytes > 5 * 1024 * 1024) {
+        return res.status(400).json({ message: "Image size must be less than or equal to 5MB." });
+      }
     }
     console.log("Received student data:", studentData);
     const newStudent = new Student(studentData);
@@ -80,6 +116,40 @@ app.put("/api/students/:id", async (req, res) => {
     const studentData = req.body;
     if (!studentData.lastName || !studentData.firstName) {
       return res.status(400).json({ message: "lastName and firstName are required" });
+    }
+    // LRN: 12 digits, numbers only
+    if (studentData.lrn && !/^\d{12}$/.test(studentData.lrn)) {
+      return res.status(400).json({ message: "LRN must be exactly 12 digits." });
+    }
+    // Mobile: 11 digits, numbers only
+    if (studentData.mobileNo && !/^\d{11}$/.test(studentData.mobileNo)) {
+      return res.status(400).json({ message: "Mobile number must be exactly 11 digits." });
+    }
+    // RFID: numbers only (allow empty, but if filled must be numbers)
+    if (studentData.rfid && !/^\d+$/.test(studentData.rfid)) {
+      return res.status(400).json({ message: "RFID must be numbers only." });
+    }
+    // LRN: unique (exclude current student)
+    if (studentData.lrn) {
+      const lrnExists = await Student.findOne({ lrn: studentData.lrn, _id: { $ne: req.params.id } });
+      if (lrnExists) {
+        return res.status(400).json({ message: "LRN already exists. Please enter a unique LRN." });
+      }
+    }
+    // RFID: unique (exclude current student)
+    if (studentData.rfid) {
+      const rfidExists = await Student.findOne({ rfid: studentData.rfid, _id: { $ne: req.params.id } });
+      if (rfidExists) {
+        return res.status(400).json({ message: "RFID already exists. Please enter a unique RFID." });
+      }
+    }
+    // Image size: max 5MB (if pic is base64 or buffer)
+    if (studentData.pic && typeof studentData.pic === 'string' && studentData.pic.length > 0) {
+      const base64Length = studentData.pic.length - (studentData.pic.indexOf(',') + 1);
+      const sizeInBytes = Math.ceil(base64Length * 3 / 4);
+      if (sizeInBytes > 5 * 1024 * 1024) {
+        return res.status(400).json({ message: "Image size must be less than or equal to 5MB." });
+      }
     }
     console.log("Updating student data:", studentData);
     const updatedStudent = await Student.findByIdAndUpdate(req.params.id, studentData, { new: true });

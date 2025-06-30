@@ -25,6 +25,7 @@ const EditData = () => {
     const [file, setFile] = useState(null);
     const [message, setMessage] = useState("");
     const [loading, setLoading] = useState(true);
+    const [students, setStudents] = useState([]);
 
     useEffect(() => {
         const getStudent = async () => {
@@ -40,6 +41,19 @@ const EditData = () => {
         getStudent();
     }, [id]);
 
+    useEffect(() => {
+        // Fetch all students for uniqueness check
+        const fetchStudents = async () => {
+            try {
+                const res = await axios.get("http://localhost:8003/api/students");
+                setStudents(res.data.students || []);
+            } catch (err) {
+                // Optionally handle error
+            }
+        };
+        fetchStudents();
+    }, []);
+
     const setData = (e) => {
         const { name, value, type, checked, files } = e.target;
         if (type === 'file') {
@@ -54,6 +68,41 @@ const EditData = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        // Validation
+        if (!inpval.lastName || !inpval.firstName || !inpval.grlvl) {
+            setMessage("Please fill in all required fields (Last Name, First Name, Grade Level).");
+            return;
+        }
+        // LRN: 12 digits, numbers only
+        if (inpval.lrn && (!/^\d{12}$/.test(inpval.lrn))) {
+            setMessage("LRN must be exactly 12 digits.");
+            return;
+        }
+        // Mobile: 11 digits, numbers only
+        if (inpval.mobileNo && (!/^\d{11}$/.test(inpval.mobileNo))) {
+            setMessage("Mobile number must be exactly 11 digits.");
+            return;
+        }
+        // RFID: numbers only (allow empty, but if filled must be numbers)
+        if (inpval.rfid && (!/^\d+$/.test(inpval.rfid))) {
+            setMessage("RFID must be numbers only.");
+            return;
+        }
+        // LRN: unique (exclude current student)
+        if (inpval.lrn && students.some(s => s.lrn === inpval.lrn && s._id !== id)) {
+            setMessage("LRN already exists. Please enter a unique LRN.");
+            return;
+        }
+        // RFID: unique (exclude current student)
+        if (inpval.rfid && students.some(s => s.rfid === inpval.rfid && s._id !== id)) {
+            setMessage("RFID already exists. Please enter a unique RFID.");
+            return;
+        }
+        // Image size: max 5MB
+        if (file && file.size > 5 * 1024 * 1024) {
+            setMessage("Image size must be less than or equal to 5MB.");
+            return;
+        }
         let picUrl = inpval.pic;
 
         if (file) {

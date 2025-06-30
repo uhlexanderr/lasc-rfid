@@ -15,7 +15,7 @@ import SchoolIcon from '@mui/icons-material/School';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
-const pages = ['Home', 'Archived'];
+const pages = ['Home', 'Archived', 'Main Page'];
 
 function ResponsiveAppBar() {
   const [anchorElNav, setAnchorElNav] = React.useState(null);
@@ -45,6 +45,8 @@ function ResponsiveAppBar() {
       navigate('/');
     } else if (page === 'Archived') {
       navigate('/archives');
+    } else if (page === 'Main Page') {
+      navigate('/main');
     }
   };
 
@@ -191,7 +193,7 @@ function ResponsiveAppBar() {
               <Button
                 key={page}
                 component={NavLink}
-                to={page === 'Home' ? '/' : '/archives'}
+                to={page === 'Home' ? '/' : page === 'Archived' ? '/archives' : '/main'}
                 onClick={handleCloseNavMenu}
                 sx={{ my: 2, color: 'white', display: 'block' }}
               >

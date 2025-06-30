@@ -1,7 +1,7 @@
 import './App.css';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap/dist/js/bootstrap.bundle.min.js';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Navbar from './components/Navbar';
 import Breadcrumb from './components/Breadcrumb';
@@ -13,6 +13,7 @@ import AddData from './components/AddData';
 import EditData from './components/EditData';
 import ViewData from './components/ViewData';
 import Archive from './components/Archive';
+import MainPage from './components/MainPage';
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -61,10 +62,12 @@ const PublicRoute = ({ children }) => {
 };
 
 function AppRoutes() {
+  const location = useLocation();
+  const isMainPage = location.pathname === '/main';
   return (
     <>
-      <Navbar />
-      <Breadcrumb />
+      {!isMainPage && <Navbar />}
+      {!isMainPage && <Breadcrumb />}
       <Routes>
         {/* Public routes */}
         <Route path="/login" element={
@@ -122,6 +125,11 @@ function AppRoutes() {
         <Route path="/archives" element={
           <ProtectedRoute>
             <Archive />
+          </ProtectedRoute>
+        } />
+        <Route path="/main" element={
+          <ProtectedRoute>
+            <MainPage isMainPage />
           </ProtectedRoute>
         } />
         

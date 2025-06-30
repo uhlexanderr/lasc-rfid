@@ -5,8 +5,8 @@ const Breadcrumb = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // ✅ Do not show breadcrumb on home page
-  if (location.pathname === '/') return null;
+  // ✅ Do not show breadcrumb on home page or login page
+  if (location.pathname === '/' || location.pathname.toLowerCase() === '/login') return null;
 
   const getBreadcrumbItems = () => {
     const pathSegments = location.pathname.split('/').filter(segment => segment !== '');
@@ -25,8 +25,7 @@ const Breadcrumb = () => {
       let name = segment;
       if (segment === 'Register') name = 'Register';
       else if (segment === 'Login') name = 'Login';
-      else if (segment === 'AddData') name = 'Add New Student';
-      else if (segment === 'adddata') name = 'Add New Student';
+      else if (segment === 'AddData' || segment === 'adddata') name = 'Add New Student';
       else if (segment === 'EditData') name = 'Edit Data';
       else if (segment === 'ViewData') name = 'View Data';
       else if (segment === 'archives') name = 'Archives';

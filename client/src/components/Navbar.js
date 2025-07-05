@@ -83,7 +83,7 @@ function ResponsiveAppBar() {
   // If not authenticated, show minimal navbar
   if (!isAuthenticated) {
     return (
-      <AppBar position="static">
+      <AppBar position="static" sx={{ backgroundColor: '#004aad' }}>
         <Container maxWidth="xl">
           <Toolbar disableGutters>
             <SchoolIcon sx={{ display: { xs: 'none', md: 'flex' }, mr: 1 }} />
@@ -106,10 +106,9 @@ function ResponsiveAppBar() {
             </Typography>
             <Box sx={{ flexGrow: 1 }} />
             <Button 
-              color="inherit" 
-              component={NavLink} 
+              component={NavLink}
               to="/login"
-              sx={{ color: 'white' }}
+              sx={{ backgroundColor: '#004aad', color: '#fff', '&:hover': { backgroundColor: '#00337a' } }}
             >
               Login
             </Button>
@@ -120,7 +119,7 @@ function ResponsiveAppBar() {
   }
 
   return (
-    <AppBar position="static">
+    <AppBar position="static" sx={{ backgroundColor: '#004aad' }}>
       <Container maxWidth="xl">
         <Toolbar disableGutters>
           <SchoolIcon sx={{ display: { xs: 'none', md: 'flex' }, mr: 1 }} />

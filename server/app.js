@@ -60,18 +60,27 @@ app.get("/api/students/archived", async (req, res) => {
 // Route to add a new student
 app.post("/api/students", async (req, res) => {
   try {
-    const studentData = req.body;
+    let studentData = req.body;
+    // Log the full incoming request body for debugging
+    console.log("[DEBUG] Incoming POST /api/students payload:", JSON.stringify(studentData, null, 2));
+    // Remove empty string fields
+    Object.keys(studentData).forEach(key => {
+      if (studentData[key] === "") {
+        delete studentData[key];
+      }
+    });
 
-    if (!studentData.lastName || !studentData.firstName) {
-      return res.status(400).json({ message: "lastName and firstName are required" });
+    // Required fields
+    if (!studentData.lastName || !studentData.firstName || !studentData.grlvl || !studentData.sy) {
+      return res.status(400).json({ message: "lastName, firstName, grlvl, and sy are required" });
     }
 
     if (studentData.lrn && !/^\d{12}$/.test(studentData.lrn)) {
       return res.status(400).json({ message: "LRN must be exactly 12 digits." });
     }
 
-    if (studentData.mobileNo && !/^\d{11}$/.test(studentData.mobileNo)) {
-      return res.status(400).json({ message: "Mobile number must be exactly 11 digits." });
+    if (studentData.mobileNo && !/^\d{10,11}$/.test(studentData.mobileNo)) {
+      return res.status(400).json({ message: "Mobile number must be 10 or 11 digits." });
     }
 
     if (studentData.rfid && !/^\d+$/.test(studentData.rfid)) {
@@ -93,11 +102,15 @@ app.post("/api/students", async (req, res) => {
     }
 
     if (studentData.pic && typeof studentData.pic === 'string' && studentData.pic.length > 0) {
-      const base64Length = studentData.pic.length - (studentData.pic.indexOf(',') + 1);
-      const sizeInBytes = Math.ceil(base64Length * 3 / 4);
-      if (sizeInBytes > 5 * 1024 * 1024) {
-        return res.status(400).json({ message: "Image size must be less than or equal to 5MB." });
+      // Check if it's a base64 image (starts with data:image)
+      if (studentData.pic.startsWith('data:image')) {
+        const base64Length = studentData.pic.length - (studentData.pic.indexOf(',') + 1);
+        const sizeInBytes = Math.ceil(base64Length * 3 / 4);
+        if (sizeInBytes > 5 * 1024 * 1024) {
+          return res.status(400).json({ message: "Image size must be less than or equal to 5MB." });
+        }
       }
+      // If it's a URL (like Firebase Storage URL), we don't need to validate size
     }
 
     // ✅ Simplified log
@@ -111,6 +124,8 @@ app.post("/api/students", async (req, res) => {
 
     res.status(201).json({ message: "Student added successfully", student: newStudent });
   } catch (error) {
+    // Log the error stack for comprehensive debugging
+    console.error("[ERROR] Error adding student:", error.stack || error);
     res.status(500).json({ message: "Error adding student", error });
   }
 });
@@ -131,18 +146,25 @@ app.get("/api/students/:id", async (req, res) => {
 // Route to update a student
 app.put("/api/students/:id", async (req, res) => {
   try {
-    const studentData = req.body;
+    let studentData = req.body;
+    // Remove empty string fields
+    Object.keys(studentData).forEach(key => {
+      if (studentData[key] === "") {
+        delete studentData[key];
+      }
+    });
 
-    if (!studentData.lastName || !studentData.firstName) {
-      return res.status(400).json({ message: "lastName and firstName are required" });
+    // Required fields
+    if (!studentData.lastName || !studentData.firstName || !studentData.grlvl || !studentData.sy) {
+      return res.status(400).json({ message: "lastName, firstName, grlvl, and sy are required" });
     }
 
     if (studentData.lrn && !/^\d{12}$/.test(studentData.lrn)) {
       return res.status(400).json({ message: "LRN must be exactly 12 digits." });
     }
 
-    if (studentData.mobileNo && !/^\d{11}$/.test(studentData.mobileNo)) {
-      return res.status(400).json({ message: "Mobile number must be exactly 11 digits." });
+    if (studentData.mobileNo && !/^\d{10,11}$/.test(studentData.mobileNo)) {
+      return res.status(400).json({ message: "Mobile number must be 10 or 11 digits." });
     }
 
     if (studentData.rfid && !/^\d+$/.test(studentData.rfid)) {
@@ -164,11 +186,15 @@ app.put("/api/students/:id", async (req, res) => {
     }
 
     if (studentData.pic && typeof studentData.pic === 'string' && studentData.pic.length > 0) {
-      const base64Length = studentData.pic.length - (studentData.pic.indexOf(',') + 1);
-      const sizeInBytes = Math.ceil(base64Length * 3 / 4);
-      if (sizeInBytes > 5 * 1024 * 1024) {
-        return res.status(400).json({ message: "Image size must be less than or equal to 5MB." });
+      // Check if it's a base64 image (starts with data:image)
+      if (studentData.pic.startsWith('data:image')) {
+        const base64Length = studentData.pic.length - (studentData.pic.indexOf(',') + 1);
+        const sizeInBytes = Math.ceil(base64Length * 3 / 4);
+        if (sizeInBytes > 5 * 1024 * 1024) {
+          return res.status(400).json({ message: "Image size must be less than or equal to 5MB." });
+        }
       }
+      // If it's a URL (like Firebase Storage URL), we don't need to validate size
     }
 
     const updatedStudent = await Student.findByIdAndUpdate(req.params.id, studentData, { new: true });

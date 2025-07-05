@@ -18,6 +18,7 @@ const ViewData = () => {
     const [student, setStudent] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [imgLoading, setImgLoading] = useState(true);
     const { id } = useParams();
     const navigate = useNavigate();
 
@@ -36,6 +37,10 @@ const ViewData = () => {
         };
         getStudent();
     }, [id]);
+
+    useEffect(() => {
+        setImgLoading(true);
+    }, [student]);
 
     const handleArchive = async (id) => {
         if (window.confirm("Are you sure you want to archive this student?")) {
@@ -181,19 +186,26 @@ const ViewData = () => {
                                 {/* Left Column */}
                                 <div className="col-12 col-lg-6">
                                     <div className="text-center mb-4">
-                                        <img
-                                            src={student.pic || "/avatar.png"}
-                                            style={{
-                                                width: '180px',
-                                                height: '180px',
-                                                objectFit: 'cover',
-                                                borderRadius: '8px',
-                                                border: '4px solid #e9ecef',
-                                                boxShadow: '0 4px 8px rgba(0,0,0,0.1)'
-                                            }}
-                                            alt="Student Profile"
-                                            onError={(e) => { e.target.src = "/avatar.png"; }}
-                                        />
+                                        <div style={{ position: 'relative', width: '180px', height: '180px', margin: '0 auto' }}>
+                                            {imgLoading && (
+                                                <Skeleton variant="rectangular" width={180} height={180} sx={{ position: 'absolute', top: 0, left: 0, zIndex: 1, borderRadius: '8px' }} />
+                                            )}
+                                            <img
+                                                src={student.pic || "/avatar.png"}
+                                                style={{
+                                                    width: '180px',
+                                                    height: '180px',
+                                                    objectFit: 'cover',
+                                                    borderRadius: '8px',
+                                                    border: '4px solid #e9ecef',
+                                                    boxShadow: '0 4px 8px rgba(0,0,0,0.1)',
+                                                    display: imgLoading ? 'none' : 'block',
+                                                }}
+                                                alt="Student Profile"
+                                                onError={(e) => { e.target.src = "/avatar.png"; setImgLoading(false); }}
+                                                onLoad={() => setImgLoading(false)}
+                                            />
+                                        </div>
                                         <h4 className="mt-3 mb-1 fw-bold">
                                             {student.firstName} {student.middleName} {student.lastName}
                                         </h4>

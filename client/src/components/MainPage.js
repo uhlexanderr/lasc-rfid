@@ -11,6 +11,7 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import Input from '@mui/material/Input';
 import { useAuth } from '../context/AuthContext';
+import Skeleton from '@mui/material/Skeleton';
 
 // Fetch student data by RFID from the database
 async function fetchStudentByRFID(rfid) {
@@ -42,6 +43,7 @@ const MainPage = ({ isMainPage }) => {
   const [passwordError, setPasswordError] = useState('');
   const { login, isAuthenticated } = useAuth();
   const rfidInputRef = useRef(null);
+  const [imgLoading, setImgLoading] = useState(true);
 
   const handleMenuOpen = (event) => {
     setAnchorEl(event.currentTarget);
@@ -143,20 +145,7 @@ const MainPage = ({ isMainPage }) => {
 
   // Additional useEffect to handle auto-clear when component unmounts or student changes
   useEffect(() => {
-    let autoClearTimer;
-    
-    if (student) {
-      autoClearTimer = setTimeout(() => {
-        setStudent(null);
-        setError('');
-      }, 5000);
-    }
-
-    return () => {
-      if (autoClearTimer) {
-        clearTimeout(autoClearTimer);
-      }
-    };
+    setImgLoading(true);
   }, [student]);
 
   const handlePasswordChange = (e) => {
@@ -237,7 +226,7 @@ const MainPage = ({ isMainPage }) => {
             </DialogContent>
             <DialogActions>
               <Button onClick={handlePasswordDialogClose}>Cancel</Button>
-              <Button onClick={handlePasswordSubmit} variant="contained">
+              <Button onClick={handlePasswordSubmit} variant="contained" sx={{ backgroundColor: '#004aad', color: '#fff', '&:hover': { backgroundColor: '#00337a' } }}>
                 Login
               </Button>
             </DialogActions>
@@ -275,18 +264,25 @@ const MainPage = ({ isMainPage }) => {
         )}
         {student && (
           <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mt: 2 }}>
-            <img
-              src={student.pic || process.env.PUBLIC_URL + '/profile.png'}
-              alt="Student"
-              style={{
-                width: 120,
-                height: 120,
-                borderRadius: '50%',
-                objectFit: 'cover',
-                marginBottom: 16,
-                border: '3px solid #1976d2',
-              }}
-            />
+            <Box sx={{ position: 'relative', width: 120, height: 120, mb: 2 }}>
+              {imgLoading && (
+                <Skeleton variant="rectangular" width={120} height={120} sx={{ position: 'absolute', top: 0, left: 0, zIndex: 1, borderRadius: '8px' }} />
+              )}
+              <img
+                src={student.pic || process.env.PUBLIC_URL + '/profile.png'}
+                alt="Student"
+                style={{
+                  width: 120,
+                  height: 120,
+                  borderRadius: '50%',
+                  objectFit: 'cover',
+                  border: '3px solid #1976d2',
+                  display: imgLoading ? 'none' : 'block',
+                }}
+                onLoad={() => setImgLoading(false)}
+                onError={() => setImgLoading(false)}
+              />
+            </Box>
             <Typography variant="h6">Student Details</Typography>
             <Typography>Name: {student.firstName} {student.middleName} {student.lastName}</Typography>
             <Typography>RFID: {student.rfid}</Typography>

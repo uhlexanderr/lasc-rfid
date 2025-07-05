@@ -68,9 +68,9 @@ const handleSubmit = async (e) => {
         setLoading(false);
         return;
     }
-    // Mobile: 11 digits, numbers only
-    if (inpval.mobileNo && (!/^\d{11}$/.test(inpval.mobileNo))) {
-        setMessage("Mobile number must be exactly 11 digits.");
+    // Mobile: 10 or 11 digits, numbers only
+    if (inpval.mobileNo && (!/^\d{10,11}$/.test(inpval.mobileNo))) {
+        setMessage("Mobile number must be 10 or 11 digits.");
         setLoading(false);
         return;
     }
@@ -167,6 +167,11 @@ return (
             </div>
         </div>
 
+        {/* Required Fields Note */}
+        <div className="mb-3">
+            <span className="text-danger fw-bold">*</span> <span className="text-muted">Required fields</span>
+        </div>
+
         {/* Alert Messages */}
         {message && (
             <div className={`alert ${message.includes('successfully') ? 'alert-success' : 'alert-danger'} alert-dismissible fade show`} role="alert">
@@ -181,7 +186,7 @@ return (
                 <form className="row g-3" onSubmit={handleSubmit}>
                     <div className="col-md-4">
                         <label htmlFor="inputLastName" className="form-label fw-semibold">
-                            Last Name <span className="text-danger">*</span>
+                            Last Name <span className="text-danger" title="Required">*</span>
                         </label>
                         <input 
                             type="text" 
@@ -196,7 +201,7 @@ return (
                     </div>
                     <div className="col-md-4">
                         <label htmlFor="inputFirstName" className="form-label fw-semibold">
-                            First Name <span className="text-danger">*</span>
+                            First Name <span className="text-danger" title="Required">*</span>
                         </label>
                         <input 
                             type="text" 
@@ -223,7 +228,7 @@ return (
                     </div>
                     <div className="col-md-2">
                         <label htmlFor="inputGradelvl" className="form-label fw-semibold">
-                            Grade Level <span className="text-danger">*</span>
+                            Grade Level <span className="text-danger" title="Required">*</span>
                         </label>
                         <select 
                             id="inputGradelvl" 
@@ -303,13 +308,16 @@ return (
                         <div className="form-text">Upload a clear photo of the student (JPG, PNG, GIF)</div>
                     </div>
                     <div className="col-md-2">
-                        <label htmlFor="inputSy" className="form-label fw-semibold">School Year</label>
+                        <label htmlFor="inputSy" className="form-label fw-semibold">
+                            School Year <span className="text-danger" title="Required">*</span>
+                        </label>
                         <select 
                             id="inputSy" 
                             value={inpval.sy} 
                             onChange={setData} 
                             name="sy" 
                             className="form-select"
+                            required
                             disabled={loading}
                         >
                             <option value="">Choose...</option>

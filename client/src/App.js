@@ -14,6 +14,7 @@ import EditData from './components/EditData';
 import ViewData from './components/ViewData';
 import Archive from './components/Archive';
 import MainPage from './components/MainPage';
+import Admins from './components/Admins';
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -55,6 +56,33 @@ const PublicRoute = ({ children }) => {
   }
 
   if (isAuthenticated) {
+    return <Navigate to="/home" replace />;
+  }
+
+  return children;
+};
+
+// Super Admin Route Component (only allows super-admin access)
+const SuperAdminRoute = ({ children }) => {
+  const { isAuthenticated, loading, admin } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="container mt-5">
+        <div className="d-flex justify-content-center">
+          <div className="spinner-border" role="status">
+            <span className="visually-hidden">Loading...</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (admin?.role !== 'super-admin') {
     return <Navigate to="/home" replace />;
   }
 
@@ -131,6 +159,11 @@ function AppRoutes() {
           <ProtectedRoute>
             <MainPage isMainPage />
           </ProtectedRoute>
+        } />
+        <Route path="/admins" element={
+          <SuperAdminRoute>
+            <Admins />
+          </SuperAdminRoute>
         } />
         
         {/* Catch all route */}

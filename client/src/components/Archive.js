@@ -5,17 +5,26 @@ import VisibilityIcon from '@mui/icons-material/Visibility';
 import RestoreIcon from '@mui/icons-material/Restore';
 import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 import ArchiveIcon from '@mui/icons-material/Archive';
+import SearchIcon from '@mui/icons-material/Search';
+import ClearIcon from '@mui/icons-material/Clear';
 import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogContentText from '@mui/material/DialogContentText';
 import DialogTitle from '@mui/material/DialogTitle';
 import Button from '@mui/material/Button';
+import TextField from '@mui/material/TextField';
+import Select from '@mui/material/Select';
+import MenuItem from '@mui/material/MenuItem';
+import FormControl from '@mui/material/FormControl';
+import InputLabel from '@mui/material/InputLabel';
+import Pagination from '@mui/material/Pagination';
+import Box from '@mui/material/Box';
 import Skeleton from '@mui/material/Skeleton';
-import PeopleIcon from '@mui/icons-material/People';
 
 const Archive = () => {
     const [students, setStudents] = useState([]);
+    const [filteredStudents, setFilteredStudents] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [confirmDialog, setConfirmDialog] = useState({
@@ -25,12 +34,25 @@ const Archive = () => {
         action: null,
         studentId: null
     });
+    
+    // Filter states
+    const [filters, setFilters] = useState({
+        search: '',
+        gradeLevel: '',
+        rfidStatus: '',
+        schoolYear: ''
+    });
+    
+    // Pagination states
+    const [currentPage, setCurrentPage] = useState(1);
+    const [itemsPerPage, setItemsPerPage] = useState(10);
 
     useEffect(() => {
         const fetchArchivedStudents = async () => {
             try {
                 const res = await axios.get("http://localhost:8003/api/students/archived");
                 setStudents(res.data.students);
+                setFilteredStudents(res.data.students);
                 setLoading(false);
             } catch (err) {
                 setError("Failed to fetch archived students");
@@ -39,6 +61,98 @@ const Archive = () => {
         };
         fetchArchivedStudents();
     }, []);
+
+    // Filter students based on search criteria
+    useEffect(() => {
+        let filtered = [...students];
+        
+        // Search filter
+        if (filters.search) {
+            const searchTerm = filters.search.toLowerCase();
+            filtered = filtered.filter(student => 
+                student.firstName.toLowerCase().includes(searchTerm) ||
+                student.lastName.toLowerCase().includes(searchTerm) ||
+                student.middleName?.toLowerCase().includes(searchTerm) ||
+                student.grlvl.toLowerCase().includes(searchTerm) ||
+                student.rfid?.toLowerCase().includes(searchTerm) ||
+                student.sy?.toLowerCase().includes(searchTerm)
+            );
+        }
+        
+        // Grade level filter
+        if (filters.gradeLevel) {
+            filtered = filtered.filter(student => student.grlvl === filters.gradeLevel);
+        }
+        
+        // RFID status filter
+        if (filters.rfidStatus) {
+            if (filters.rfidStatus === 'with') {
+                filtered = filtered.filter(student => student.rfid);
+            } else if (filters.rfidStatus === 'without') {
+                filtered = filtered.filter(student => !student.rfid);
+            }
+        }
+        
+        // School year filter
+        if (filters.schoolYear) {
+            filtered = filtered.filter(student => student.sy === filters.schoolYear);
+        }
+        
+        setFilteredStudents(filtered);
+        setCurrentPage(1); // Reset to first page when filters change
+    }, [students, filters]);
+
+    // Get current students for pagination
+    const indexOfLastStudent = currentPage * itemsPerPage;
+    const indexOfFirstStudent = indexOfLastStudent - itemsPerPage;
+    const currentStudents = filteredStudents.slice(indexOfFirstStudent, indexOfLastStudent);
+    const totalPages = Math.ceil(filteredStudents.length / itemsPerPage);
+
+    const handleFilterChange = (field, value) => {
+        setFilters(prev => ({
+            ...prev,
+            [field]: value
+        }));
+    };
+
+    const clearFilters = () => {
+        setFilters({
+            search: '',
+            gradeLevel: '',
+            rfidStatus: '',
+            schoolYear: ''
+        });
+    };
+
+    const handlePageChange = (event, value) => {
+        setCurrentPage(value);
+    };
+
+    const handleItemsPerPageChange = (event) => {
+        const newItemsPerPage = parseInt(event.target.value);
+        setItemsPerPage(newItemsPerPage);
+        setCurrentPage(1); // Reset to first page when items per page changes
+    };
+
+    // Get unique grade levels for filter dropdown
+    const uniqueGradeLevels = [
+        'Nursery 1 - Hope',
+        'Nursery 2 - Grace',
+        'Kinder - Peace',
+        'Kinder - Love',
+        'Grade 1 - Creativity',
+        'Grade 2 - Synergy',
+        'Grade 3 - Innovation',
+        'Grade 4 - Gratitude',
+        'Grade 5 - Wisdom',
+        'Grade 6 - Obedience',
+        'Grade 7 - Purity',
+        'Grade 8 - Charity',
+        'Grade 9 - Humility',
+        'Grade 10 - Serenity',
+        'Grade 11 - Diligence',
+        'Grade 12 - Integrity'
+    ];
 
     const handleRestore = (studentId) => {
         setConfirmDialog({
@@ -113,8 +227,90 @@ const Archive = () => {
                     {/* Main Content */}
                     <div className="card shadow-sm">
                         <div className="card-header bg-white">
-                            <h5 className="mb-0 fw-semibold">Archived Student List</h5>
+                            <div className="row align-items-center">
+                                <div className="col-md-6">
+                                    <h5 className="mb-0 fw-semibold">Archived Student List</h5>
+                                    <small className="text-muted">
+                                        Showing {filteredStudents.length} of {students.length} archived students
+                                    </small>
+                                </div>
+                                <div className="col-md-6 text-end">
+                                    <button
+                                        className="btn btn-outline-secondary btn-sm"
+                                        onClick={clearFilters}
+                                        disabled={!filters.search && !filters.gradeLevel && !filters.rfidStatus && !filters.schoolYear}
+                                    >
+                                        <ClearIcon className="me-1" />
+                                        Clear Filters
+                                    </button>
+                                </div>
+                            </div>
                         </div>
+                        
+                        {/* Filters Section */}
+                        <div className="card-body border-bottom">
+                            <div className="row g-3">
+                                <div className="col-md-6">
+                                    <TextField
+                                        fullWidth
+                                        size="small"
+                                        label="Search Archived Students"
+                                        variant="outlined"
+                                        value={filters.search}
+                                        onChange={(e) => handleFilterChange('search', e.target.value)}
+                                        InputProps={{
+                                            startAdornment: <SearchIcon sx={{ color: 'action.active', mr: 1 }} />
+                                        }}
+                                        placeholder="Search by name, grade, RFID, or school year..."
+                                    />
+                                </div>
+                                <div className="col-md-2">
+                                    <FormControl fullWidth size="small">
+                                        <InputLabel>Grade Level</InputLabel>
+                                        <Select
+                                            value={filters.gradeLevel}
+                                            label="Grade Level"
+                                            onChange={(e) => handleFilterChange('gradeLevel', e.target.value)}
+                                        >
+                                            <MenuItem value="">All Grades</MenuItem>
+                                            {uniqueGradeLevels.map(grade => (
+                                                <MenuItem key={grade} value={grade}>{grade}</MenuItem>
+                                            ))}
+                                        </Select>
+                                    </FormControl>
+                                </div>
+                                <div className="col-md-2">
+                                    <FormControl fullWidth size="small">
+                                        <InputLabel>RFID Status</InputLabel>
+                                        <Select
+                                            value={filters.rfidStatus}
+                                            label="RFID Status"
+                                            onChange={(e) => handleFilterChange('rfidStatus', e.target.value)}
+                                        >
+                                            <MenuItem value="">All Students</MenuItem>
+                                            <MenuItem value="with">With RFID</MenuItem>
+                                            <MenuItem value="without">Without RFID</MenuItem>
+                                        </Select>
+                                    </FormControl>
+                                </div>
+                                <div className="col-md-2">
+                                    <FormControl fullWidth size="small">
+                                        <InputLabel>School Year</InputLabel>
+                                        <Select
+                                            value={filters.schoolYear}
+                                            label="School Year"
+                                            onChange={(e) => handleFilterChange('schoolYear', e.target.value)}
+                                        >
+                                            <MenuItem value="">All Years</MenuItem>
+                                            <MenuItem value="2023-2024">2023-2024</MenuItem>
+                                            <MenuItem value="2024-2025">2024-2025</MenuItem>
+                                            <MenuItem value="2025-2026">2025-2026</MenuItem>
+                                        </Select>
+                                    </FormControl>
+                                </div>
+                            </div>
+                        </div>
+                        
                         <div className="card-body p-0">
                             {loading ? (
                                 <div className="p-4">
@@ -141,92 +337,150 @@ const Archive = () => {
                                         </button>
                                     </div>
                                 </div>
-                            ) : students.length === 0 ? (
+                            ) : filteredStudents.length === 0 ? (
                                 <div className="p-4 text-center">
                                     <ArchiveIcon style={{ fontSize: '4rem', color: '#6c757d' }} className="mb-3" />
-                                    <h5 className="text-muted">No Archived Students</h5>
-                                    <p className="text-muted">There are currently no archived students in the system.</p>
-                                    <NavLink to="/">
-                                        <button className="btn btn-primary">
-                                            Back to Active Students
+                                    <h5 className="text-muted">
+                                        {students.length === 0 ? 'No Archived Students' : 'No Students Match Your Filters'}
+                                    </h5>
+                                    <p className="text-muted">
+                                        {students.length === 0 
+                                            ? 'There are currently no archived students in the system.' 
+                                            : 'Try adjusting your search criteria or clear the filters.'
+                                        }
+                                    </p>
+                                    {students.length === 0 && (
+                                        <NavLink to="/">
+                                            <button className="btn btn-primary">
+                                                Back to Active Students
+                                            </button>
+                                        </NavLink>
+                                    )}
+                                    {students.length > 0 && (
+                                        <button
+                                            className="btn btn-outline-secondary"
+                                            onClick={clearFilters}
+                                        >
+                                            <ClearIcon className="me-2" />
+                                            Clear Filters
                                         </button>
-                                    </NavLink>
+                                    )}
                                 </div>
                             ) : (
-                                <div className="table-responsive">
-                                    <table className="table table-hover mb-0">
-                                        <thead>
-                                            <tr className="bg-light">
-                                                <th scope="col" className="border-0">#</th>
-                                                <th scope="col" className="border-0">Last Name</th>
-                                                <th scope="col" className="border-0">First Name</th>
-                                                <th scope="col" className="border-0">Middle Name</th>
-                                                <th scope="col" className="border-0">Grade & Section</th>
-                                                <th scope="col" className="border-0">RFID Tag</th>
-                                                <th scope="col" className="border-0">Archived Date</th>
-                                                <th scope="col" className="border-0 text-center">Actions</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {students.map((student, idx) => (
-                                                <tr key={student._id} className="align-middle">
-                                                    <td className="fw-semibold">{idx + 1}</td>
-                                                    <td className="fw-semibold">{student.lastName}</td>
-                                                    <td>{student.firstName}</td>
-                                                    <td>{student.middleName || '-'}</td>
-                                                    <td>
-                                                        <span className="badge bg-primary">{student.grlvl}</span>
-                                                    </td>
-                                                    <td>
-                                                        {student.rfid ? (
-                                                            <span className="badge bg-success">{student.rfid}</span>
-                                                        ) : (
-                                                            <span className="badge bg-warning text-dark">Pending</span>
-                                                        )}
-                                                    </td>
-                                                    <td>
-                                                        <span className="text-muted">
-                                                            {student.archivedAt ? new Date(student.archivedAt).toLocaleDateString() : 'N/A'}
-                                                        </span>
-                                                    </td>
-                                                    <td>
-                                                        <div className="d-flex justify-content-center gap-2">
-                                                            <NavLink to={`/view/${student._id}`}>
-                                                                <button 
-                                                                    className="btn btn-outline-primary btn-sm"
-                                                                    title="View Details"
-                                                                >
-                                                                    <VisibilityIcon />
-                                                                </button>
-                                                            </NavLink>
-                                                            <button 
-                                                                className="btn btn-outline-warning btn-sm"
-                                                                onClick={() => handleRestore(student._id)}
-                                                                title="Restore Student"
-                                                            >
-                                                                <RestoreIcon />
-                                                            </button>
-                                                            <button 
-                                                                className="btn btn-outline-danger btn-sm"
-                                                                onClick={() => handleDelete(student._id)}
-                                                                title="Delete Permanently"
-                                                            >
-                                                                <DeleteForeverIcon />
-                                                            </button>
-                                                        </div>
-                                                    </td>
+                                <>
+                                    <div className="table-responsive">
+                                        <table className="table table-hover mb-0">
+                                            <thead>
+                                                <tr className="bg-light">
+                                                    <th scope="col" className="border-0">#</th>
+                                                    <th scope="col" className="border-0">Last Name</th>
+                                                    <th scope="col" className="border-0">First Name</th>
+                                                    <th scope="col" className="border-0">Middle Name</th>
+                                                    <th scope="col" className="border-0">Grade & Section</th>
+                                                    <th scope="col" className="border-0">RFID Tag</th>
+                                                    <th scope="col" className="border-0">Archived Date</th>
+                                                    <th scope="col" className="border-0 text-center">Actions</th>
                                                 </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
+                                            </thead>
+                                            <tbody>
+                                                {currentStudents.map((student, idx) => (
+                                                    <tr key={student._id} className="align-middle">
+                                                        <td className="fw-semibold">{indexOfFirstStudent + idx + 1}</td>
+                                                        <td className="fw-semibold">{student.lastName}</td>
+                                                        <td>{student.firstName}</td>
+                                                        <td>{student.middleName || '-'}</td>
+                                                        <td>
+                                                            <span className="badge bg-primary">{student.grlvl}</span>
+                                                        </td>
+                                                        <td>
+                                                            {student.rfid ? (
+                                                                <span className="badge bg-success">{student.rfid}</span>
+                                                            ) : (
+                                                                <span className="badge bg-warning text-dark">Pending</span>
+                                                            )}
+                                                        </td>
+                                                        <td>
+                                                            <span className="text-muted">
+                                                                {student.archivedAt ? new Date(student.archivedAt).toLocaleDateString() : 'N/A'}
+                                                            </span>
+                                                        </td>
+                                                        <td>
+                                                            <div className="d-flex justify-content-center gap-2">
+                                                                <NavLink to={`/view/${student._id}`}>
+                                                                    <button 
+                                                                        className="btn btn-outline-primary btn-sm"
+                                                                        title="View Details"
+                                                                    >
+                                                                        <VisibilityIcon />
+                                                                    </button>
+                                                                </NavLink>
+                                                                <button 
+                                                                    className="btn btn-outline-success btn-sm"
+                                                                    onClick={() => handleRestore(student._id)}
+                                                                    title="Restore Student"
+                                                                >
+                                                                    <RestoreIcon />
+                                                                </button>
+                                                                <button 
+                                                                    className="btn btn-outline-danger btn-sm"
+                                                                    onClick={() => handleDelete(student._id)}
+                                                                    title="Permanently Delete"
+                                                                >
+                                                                    <DeleteForeverIcon />
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    
+                                    {/* Pagination */}
+                                    <div className="card-footer bg-white border-top">
+                                        <div className="row align-items-center">
+                                            <div className="col-md-4">
+                                                <div className="d-flex align-items-center">
+                                                    <span className="text-muted me-2">Show:</span>
+                                                    <FormControl size="small" sx={{ minWidth: 80 }}>
+                                                        <Select
+                                                            value={itemsPerPage}
+                                                            onChange={handleItemsPerPageChange}
+                                                            displayEmpty
+                                                        >
+                                                            <MenuItem value={5}>5</MenuItem>
+                                                            <MenuItem value={10}>10</MenuItem>
+                                                            <MenuItem value={25}>25</MenuItem>
+                                                            <MenuItem value={50}>50</MenuItem>
+                                                            <MenuItem value={100}>100</MenuItem>
+                                                        </Select>
+                                                    </FormControl>
+                                                    <span className="text-muted ms-2">entries per page</span>
+                                                </div>
+                                            </div>
+                                            <div className="col-md-4 text-end">
+                                                {totalPages > 1 && (
+                                                    <Box display="flex" justifyContent="center">
+                                                        <Pagination
+                                                            count={totalPages}
+                                                            page={currentPage}
+                                                            onChange={handlePageChange}
+                                                            color="primary"
+                                                            size="large"
+                                                        />
+                                                    </Box>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </>
                             )}
                         </div>
                     </div>
                 </div>
             </div>
 
-            {/* Material-UI Confirmation Dialog */}
+            {/* Confirmation Dialog */}
             <Dialog
                 open={confirmDialog.open}
                 onClose={handleCloseDialog}
@@ -242,16 +496,13 @@ const Archive = () => {
                     </DialogContentText>
                 </DialogContent>
                 <DialogActions>
-                    <Button onClick={handleCloseDialog} color="primary">
-                        Cancel
-                    </Button>
+                    <Button onClick={handleCloseDialog}>Cancel</Button>
                     <Button 
                         onClick={handleConfirmAction} 
-                        color={confirmDialog.action === 'delete' ? 'error' : 'warning'}
-                        variant="contained"
+                        color={confirmDialog.action === 'delete' ? 'error' : 'success'} 
                         autoFocus
                     >
-                        {confirmDialog.action === 'restore' ? 'Restore' : 'Delete Permanently'}
+                        {confirmDialog.action === 'delete' ? 'Delete' : 'Restore'}
                     </Button>
                 </DialogActions>
             </Dialog>

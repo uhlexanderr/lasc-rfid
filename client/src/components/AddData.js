@@ -235,14 +235,22 @@ return (
                             disabled={loading}
                         >
                             <option value="">Choose...</option>
-                            <option value="Grade 7 - A">Grade 7 - A</option>
-                            <option value="Grade 7 - B">Grade 7 - B</option>
-                            <option value="Grade 8 - A">Grade 8 - A</option>
-                            <option value="Grade 8 - B">Grade 8 - B</option>
-                            <option value="Grade 9 - A">Grade 9 - A</option>
-                            <option value="Grade 9 - B">Grade 9 - B</option>
-                            <option value="Grade 10 - A">Grade 10 - A</option>
-                            <option value="Grade 10 - B">Grade 10 - B</option>
+                            <option value="Nursery 1 - Hope">Nursery 1 - Hope</option>
+                            <option value="Nursery 2 - Grace">Nursery 2 - Grace</option>
+                            <option value="Kinder - Peace">Kinder - Peace</option>
+                            <option value="Kinder - Love">Kinder - Love</option>
+                            <option value="Grade 1 - Creativity">Grade 1 - Creativity</option>
+                            <option value="Grade 2 - Synergy">Grade 2 - Synergy</option>
+                            <option value="Grade 3 - Innovation">Grade 3 - Innovation</option>
+                            <option value="Grade 4 - Gratitude">Grade 4 - Gratitude</option>
+                            <option value="Grade 5 - Wisdom">Grade 5 - Wisdom</option>
+                            <option value="Grade 6 - Obedience">Grade 6 - Obedience</option>
+                            <option value="Grade 7 - Purity">Grade 7 - Purity</option>
+                            <option value="Grade 8 - Charity">Grade 8 - Charity</option>
+                            <option value="Grade 9 - Humility">Grade 9 - Humility</option>
+                            <option value="Grade 10 - Serenity">Grade 10 - Serenity</option>
+                            <option value="Grade 11 - Diligence">Grade 11 - Diligence</option>
+                            <option value="Grade 12 - Integrity">Grade 12 - Integrity</option>
                         </select>
                     </div>
                     <div className="col-md-12">

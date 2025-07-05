@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { TextField, Button, Card, Typography, Box } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import Menu from '@mui/material/Menu';
@@ -10,22 +10,24 @@ import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import Input from '@mui/material/Input';
+import { useAuth } from '../context/AuthContext';
 
-// Placeholder for fetching student data by RFID
+// Fetch student data by RFID from the database
 async function fetchStudentByRFID(rfid) {
-  // TODO: Replace with actual API call
-  // Simulate student data
-  if (rfid === '0015281923') {
-    return {
-      name: 'John Doe',
-      rfid: '123456',
-      course: 'BSIT',
-      year: '3rd Year',
-      section: 'A',
-      status: 'Active',
-    };
+  try {
+    const response = await fetch(`http://localhost:8003/api/rfid/${rfid}`);
+    if (!response.ok) {
+      if (response.status === 404) {
+        return null; // Student not found
+      }
+      throw new Error('Failed to fetch student data');
+    }
+    const data = await response.json();
+    return data.student;
+  } catch (error) {
+    console.error('Error fetching student data:', error);
+    throw error;
   }
-  return null;
 }
 
 const MainPage = ({ isMainPage }) => {
@@ -38,7 +40,8 @@ const MainPage = ({ isMainPage }) => {
   const [pendingPath, setPendingPath] = useState(null);
   const [password, setPassword] = useState('');
   const [passwordError, setPasswordError] = useState('');
-  const PASSWORD = 'admin123'; // Hardcoded for now
+  const { login, isAuthenticated } = useAuth();
+  const rfidInputRef = useRef(null);
 
   const handleMenuOpen = (event) => {
     setAnchorEl(event.currentTarget);
@@ -49,8 +52,32 @@ const MainPage = ({ isMainPage }) => {
   };
 
   const handleMenuClick = (path) => {
-    setPendingPath(path);
-    setPasswordDialogOpen(true);
+    // Clear any existing RFID processing
+    if (window.rfidTimeout) {
+      clearTimeout(window.rfidTimeout);
+    }
+    if (window.autoClearTimeout) {
+      clearTimeout(window.autoClearTimeout);
+    }
+    
+    // Clear RFID input and any student data
+    setRFID('');
+    setStudent(null);
+    setError('');
+    
+    // Remove focus from RFID input to prevent unwanted processing
+    if (rfidInputRef.current) {
+      rfidInputRef.current.blur();
+    }
+    
+    // If user is already authenticated, navigate directly
+    if (isAuthenticated) {
+      navigate(path);
+    } else {
+      // If not authenticated, show login dialog
+      setPendingPath(path);
+      setPasswordDialogOpen(true);
+    }
   };
 
   const handleRFIDChange = (e) => {
@@ -58,29 +85,79 @@ const MainPage = ({ isMainPage }) => {
     setError('');
   };
 
-  // Automatically fetch student info on RFID input (debounced)
+  // Handle RFID input changes with delay to wait for complete scan
   useEffect(() => {
-    const delayDebounce = setTimeout(async () => {
-      if (rfid.trim() !== '') {
-        const data = await fetchStudentByRFID(rfid);
-        if (data) {
-          setStudent(data);
-          setError('');
-  
-          // Clear data after 5 seconds
-          setTimeout(() => {
-            setRFID('');
-            setStudent(null);
-          }, 5000);
-        } else {
-          setStudent(null);
-          setError('No student found for this RFID.');
-        }
+    if (rfid.trim() !== '') {
+      // Clear any existing timeout
+      if (window.rfidTimeout) {
+        clearTimeout(window.rfidTimeout);
       }
-    }, 500); // Debounce RFID input
-  
-    return () => clearTimeout(delayDebounce);
+
+      // Wait for 100ms to ensure complete RFID input
+      window.rfidTimeout = setTimeout(async () => {
+        // Clear any existing auto-clear timeout
+        if (window.autoClearTimeout) {
+          clearTimeout(window.autoClearTimeout);
+        }
+
+        // Fetch student data
+        try {
+          const data = await fetchStudentByRFID(rfid);
+          if (data) {
+            setStudent(data);
+            setError('');
+            
+            // Clear input field immediately to allow next scan
+            setRFID('');
+            
+            // Set auto-clear timeout for 5 seconds
+            window.autoClearTimeout = setTimeout(() => {
+              setStudent(null);
+              setError(''); // Also clear any error messages
+            }, 5000);
+          } else {
+            setStudent(null);
+            setError('No student found for this RFID.');
+            // Clear input field immediately even for errors
+            setRFID('');
+          }
+        } catch (error) {
+          setStudent(null);
+          setError('Error fetching student data. Please try again.');
+          // Clear input field immediately even for errors
+          setRFID('');
+        }
+      }, 100); // 100ms delay to wait for complete RFID input
+    }
+
+    // Cleanup function to clear timeouts when component unmounts
+    return () => {
+      if (window.rfidTimeout) {
+        clearTimeout(window.rfidTimeout);
+      }
+      if (window.autoClearTimeout) {
+        clearTimeout(window.autoClearTimeout);
+      }
+    };
   }, [rfid]);
+
+  // Additional useEffect to handle auto-clear when component unmounts or student changes
+  useEffect(() => {
+    let autoClearTimer;
+    
+    if (student) {
+      autoClearTimer = setTimeout(() => {
+        setStudent(null);
+        setError('');
+      }, 5000);
+    }
+
+    return () => {
+      if (autoClearTimer) {
+        clearTimeout(autoClearTimer);
+      }
+    };
+  }, [student]);
 
   const handlePasswordChange = (e) => {
     setPassword(e.target.value);
@@ -94,14 +171,29 @@ const MainPage = ({ isMainPage }) => {
     setPendingPath(null);
   };
 
-  const handlePasswordSubmit = () => {
-    if (password === PASSWORD) {
-      setPasswordDialogOpen(false);
-      setPassword('');
-      setPasswordError('');
-      navigate(pendingPath);
-    } else {
-      setPasswordError('Incorrect password.');
+  const handlePasswordSubmit = async () => {
+    if (!password.trim()) {
+      setPasswordError('Password is required.');
+      return;
+    }
+
+    try {
+      // Use the existing login function from AuthContext
+      const result = await login('admin@example.com', password);
+      
+      if (result.success) {
+        setPasswordDialogOpen(false);
+        setPassword('');
+        setPasswordError('');
+        // Navigate to the pending path after successful login
+        if (pendingPath) {
+          navigate(pendingPath);
+        }
+      } else {
+        setPasswordError(result.message || 'Incorrect password.');
+      }
+    } catch (error) {
+      setPasswordError('Login failed. Please try again.');
     }
   };
 
@@ -127,22 +219,26 @@ const MainPage = ({ isMainPage }) => {
             <MenuItem onClick={() => handleMenuClick('/profile')}>Profile</MenuItem>
           </Menu>
           <Dialog open={passwordDialogOpen} onClose={handlePasswordDialogClose}>
-            <DialogTitle>Enter Password</DialogTitle>
+            <DialogTitle>Admin Login Required</DialogTitle>
             <DialogContent>
+              <Typography variant="body2" sx={{ mb: 2 }}>
+                Please enter your admin credentials to access this feature.
+              </Typography>
               <Input
                 type="password"
                 value={password}
                 onChange={handlePasswordChange}
-                placeholder="Password"
+                placeholder="Enter your password"
                 autoFocus
                 fullWidth
+                sx={{ mb: 1 }}
               />
-              {passwordError && <Typography color="error">{passwordError}</Typography>}
+              {passwordError && <Typography color="error" variant="body2">{passwordError}</Typography>}
             </DialogContent>
             <DialogActions>
               <Button onClick={handlePasswordDialogClose}>Cancel</Button>
               <Button onClick={handlePasswordSubmit} variant="contained">
-                Submit
+                Login
               </Button>
             </DialogActions>
           </Dialog>
@@ -169,6 +265,7 @@ const MainPage = ({ isMainPage }) => {
           variant="outlined"
           autoFocus
           fullWidth
+          inputRef={rfidInputRef}
           sx={{ fontSize: 32, input: { fontSize: 32, py: 2 }, mb: 3 }}
         />
         {error && (
@@ -179,7 +276,7 @@ const MainPage = ({ isMainPage }) => {
         {student && (
           <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mt: 2 }}>
             <img
-              src={process.env.PUBLIC_URL + '/profile.png'}
+              src={student.pic || process.env.PUBLIC_URL + '/profile.png'}
               alt="Student"
               style={{
                 width: 120,
@@ -191,12 +288,14 @@ const MainPage = ({ isMainPage }) => {
               }}
             />
             <Typography variant="h6">Student Details</Typography>
-            <Typography>Name: {student.name}</Typography>
+            <Typography>Name: {student.firstName} {student.middleName} {student.lastName}</Typography>
             <Typography>RFID: {student.rfid}</Typography>
-            <Typography>Course: {student.course}</Typography>
-            <Typography>Year: {student.year}</Typography>
-            <Typography>Section: {student.section}</Typography>
-            <Typography>Status: {student.status}</Typography>
+            <Typography>LRN: {student.lrn}</Typography>
+            <Typography>Grade Level: {student.grlvl}</Typography>
+            <Typography>School Year: {student.sy}</Typography>
+            <Typography>Parent: {student.parentName}</Typography>
+            <Typography>Mobile: {student.mobileNo}</Typography>
+            <Typography>Address: {student.address}</Typography>
           </Box>
         )}
       </Card>

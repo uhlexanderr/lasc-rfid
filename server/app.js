@@ -5,7 +5,9 @@ const cors = require("cors");
 const Student = require("./models/Student");
 const { authenticateToken } = require("./middleware/auth");
 const authRoutes = require("./routes/auth");
+
 const app = express();
+const port = 8003;
 
 app.use(cors());
 app.use(express.json());
@@ -16,10 +18,21 @@ mongoose.connect(mongoURI)
   .then(() => console.log("MongoDB connected successfully"))
   .catch((err) => console.error("MongoDB connection error:", err));
 
-const port = 8003;
-
 // Auth routes (no authentication required for login)
 app.use("/api/auth", authRoutes);
+
+// Public RFID endpoint
+app.get("/api/rfid/:rfid", async (req, res) => {
+  try {
+    const student = await Student.findOne({ rfid: req.params.rfid, archived: { $ne: true } });
+    if (!student) {
+      return res.status(404).json({ message: "Student not found" });
+    }
+    res.status(200).json({ student });
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching student", error });
+  }
+});
 
 // Protected routes - require admin authentication
 app.use("/api/students", authenticateToken);
@@ -48,56 +61,61 @@ app.get("/api/students/archived", async (req, res) => {
 app.post("/api/students", async (req, res) => {
   try {
     const studentData = req.body;
-    // Required fields
+
     if (!studentData.lastName || !studentData.firstName) {
       return res.status(400).json({ message: "lastName and firstName are required" });
     }
-    // LRN: 12 digits, numbers only
+
     if (studentData.lrn && !/^\d{12}$/.test(studentData.lrn)) {
       return res.status(400).json({ message: "LRN must be exactly 12 digits." });
     }
-    // Mobile: 11 digits, numbers only
+
     if (studentData.mobileNo && !/^\d{11}$/.test(studentData.mobileNo)) {
       return res.status(400).json({ message: "Mobile number must be exactly 11 digits." });
     }
-    // RFID: numbers only (allow empty, but if filled must be numbers)
+
     if (studentData.rfid && !/^\d+$/.test(studentData.rfid)) {
       return res.status(400).json({ message: "RFID must be numbers only." });
     }
-    // LRN: unique
+
     if (studentData.lrn) {
       const lrnExists = await Student.findOne({ lrn: studentData.lrn });
       if (lrnExists) {
         return res.status(400).json({ message: "LRN already exists. Please enter a unique LRN." });
       }
     }
-    // RFID: unique
+
     if (studentData.rfid) {
       const rfidExists = await Student.findOne({ rfid: studentData.rfid });
       if (rfidExists) {
         return res.status(400).json({ message: "RFID already exists. Please enter a unique RFID." });
       }
     }
-    // Image size: max 5MB (if pic is base64 or buffer)
+
     if (studentData.pic && typeof studentData.pic === 'string' && studentData.pic.length > 0) {
-      // If pic is a base64 string, estimate size
       const base64Length = studentData.pic.length - (studentData.pic.indexOf(',') + 1);
       const sizeInBytes = Math.ceil(base64Length * 3 / 4);
       if (sizeInBytes > 5 * 1024 * 1024) {
         return res.status(400).json({ message: "Image size must be less than or equal to 5MB." });
       }
     }
-    console.log("Received student data:", studentData);
+
+    // ✅ Simplified log
+    console.log(`📥 Received: ${studentData.firstName} ${studentData.lastName} (${studentData.grlvl})`);
+
     const newStudent = new Student(studentData);
     await newStudent.save();
-    console.log("Saved student document:", newStudent);
+
+    // ✅ Simplified log
+    console.log(`✅ Saved: ${newStudent.firstName} ${newStudent.lastName} | ID: ${newStudent._id}`);
+
     res.status(201).json({ message: "Student added successfully", student: newStudent });
   } catch (error) {
     res.status(500).json({ message: "Error adding student", error });
   }
 });
 
-// Route to get a single student by ID
+// Route to get a student by ID
 app.get("/api/students/:id", async (req, res) => {
   try {
     const student = await Student.findById(req.params.id);
@@ -110,40 +128,41 @@ app.get("/api/students/:id", async (req, res) => {
   }
 });
 
-// Route to update a student by ID
+// Route to update a student
 app.put("/api/students/:id", async (req, res) => {
   try {
     const studentData = req.body;
+
     if (!studentData.lastName || !studentData.firstName) {
       return res.status(400).json({ message: "lastName and firstName are required" });
     }
-    // LRN: 12 digits, numbers only
+
     if (studentData.lrn && !/^\d{12}$/.test(studentData.lrn)) {
       return res.status(400).json({ message: "LRN must be exactly 12 digits." });
     }
-    // Mobile: 11 digits, numbers only
+
     if (studentData.mobileNo && !/^\d{11}$/.test(studentData.mobileNo)) {
       return res.status(400).json({ message: "Mobile number must be exactly 11 digits." });
     }
-    // RFID: numbers only (allow empty, but if filled must be numbers)
+
     if (studentData.rfid && !/^\d+$/.test(studentData.rfid)) {
       return res.status(400).json({ message: "RFID must be numbers only." });
     }
-    // LRN: unique (exclude current student)
+
     if (studentData.lrn) {
       const lrnExists = await Student.findOne({ lrn: studentData.lrn, _id: { $ne: req.params.id } });
       if (lrnExists) {
         return res.status(400).json({ message: "LRN already exists. Please enter a unique LRN." });
       }
     }
-    // RFID: unique (exclude current student)
+
     if (studentData.rfid) {
       const rfidExists = await Student.findOne({ rfid: studentData.rfid, _id: { $ne: req.params.id } });
       if (rfidExists) {
         return res.status(400).json({ message: "RFID already exists. Please enter a unique RFID." });
       }
     }
-    // Image size: max 5MB (if pic is base64 or buffer)
+
     if (studentData.pic && typeof studentData.pic === 'string' && studentData.pic.length > 0) {
       const base64Length = studentData.pic.length - (studentData.pic.indexOf(',') + 1);
       const sizeInBytes = Math.ceil(base64Length * 3 / 4);
@@ -151,12 +170,16 @@ app.put("/api/students/:id", async (req, res) => {
         return res.status(400).json({ message: "Image size must be less than or equal to 5MB." });
       }
     }
-    console.log("Updating student data:", studentData);
+
     const updatedStudent = await Student.findByIdAndUpdate(req.params.id, studentData, { new: true });
+
     if (!updatedStudent) {
       return res.status(404).json({ message: "Student not found" });
     }
-    console.log(`Updated student: ${updatedStudent.firstName} ${updatedStudent.lastName} (ID: ${updatedStudent._id})`);
+
+    // ✅ Simplified log
+    console.log(`📝 Updated: ${updatedStudent.firstName} ${updatedStudent.lastName} | ID: ${updatedStudent._id}`);
+
     res.status(200).json({ message: "Student updated successfully", student: updatedStudent });
   } catch (error) {
     res.status(500).json({ message: "Error updating student", error });
@@ -167,21 +190,24 @@ app.put("/api/students/:id", async (req, res) => {
 app.put("/api/students/:id/archive", async (req, res) => {
   try {
     const updatedStudent = await Student.findByIdAndUpdate(
-      req.params.id, 
-      { archived: true, archivedAt: new Date() }, 
+      req.params.id,
+      { archived: true, archivedAt: new Date() },
       { new: true }
     );
     if (!updatedStudent) {
       return res.status(404).json({ message: "Student not found" });
     }
-    console.log("Student archived:", updatedStudent);
+
+    // ✅ Simplified log
+    console.log(`📦 Archived: ${updatedStudent.firstName} ${updatedStudent.lastName}`);
+
     res.status(200).json({ message: "Student archived successfully", student: updatedStudent });
   } catch (error) {
     res.status(500).json({ message: "Error archiving student", error });
   }
 });
 
-// Route to permanently delete a student from archive
+// Route to permanently delete a student
 app.delete("/api/students/:id", async (req, res) => {
   try {
     const student = await Student.findById(req.params.id);
@@ -191,32 +217,40 @@ app.delete("/api/students/:id", async (req, res) => {
     if (!student.archived) {
       return res.status(400).json({ message: "Only archived students can be permanently deleted" });
     }
+
     await Student.findByIdAndDelete(req.params.id);
-    console.log("Student permanently deleted:", student);
+
+    // ✅ Simplified log
+    console.log(`🗑️ Deleted: ${student.firstName} ${student.lastName} (archived)`);
+
     res.status(200).json({ message: "Student permanently deleted" });
   } catch (error) {
     res.status(500).json({ message: "Error deleting student", error });
   }
 });
 
-// Route to restore an archived student
+// Route to restore a student
 app.put("/api/students/:id/restore", async (req, res) => {
   try {
     const updatedStudent = await Student.findByIdAndUpdate(
-      req.params.id, 
-      { archived: false, archivedAt: null }, 
+      req.params.id,
+      { archived: false, archivedAt: null },
       { new: true }
     );
     if (!updatedStudent) {
       return res.status(404).json({ message: "Student not found" });
     }
-    console.log("Student restored:", updatedStudent);
+
+    // ✅ Simplified log
+    console.log(`♻️ Restored: ${updatedStudent.firstName} ${updatedStudent.lastName}`);
+
     res.status(200).json({ message: "Student restored successfully", student: updatedStudent });
   } catch (error) {
     res.status(500).json({ message: "Error restoring student", error });
   }
 });
 
-app.listen(port,()=>{
-    console.log(`server is starting at port ${port}`);
+// Start server
+app.listen(port, () => {
+  console.log(`🚀 Server is starting at port ${port}`);
 });

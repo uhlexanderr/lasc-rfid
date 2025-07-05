@@ -15,13 +15,22 @@ import SchoolIcon from '@mui/icons-material/School';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
-const pages = ['Home', 'Archived', 'Main Page'];
-
 function ResponsiveAppBar() {
   const [anchorElNav, setAnchorElNav] = React.useState(null);
   const [anchorElUser, setAnchorElUser] = React.useState(null);
   const { admin, logout, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+
+  // Define pages based on admin role
+  const getPages = () => {
+    const basePages = ['Home', 'Archived', 'Main Page'];
+    if (admin?.role === 'super-admin') {
+      return [...basePages, 'Admins'];
+    }
+    return basePages;
+  };
+
+  const pages = getPages();
 
   const handleOpenNavMenu = (event) => {
     setAnchorElNav(event.currentTarget);
@@ -47,6 +56,8 @@ function ResponsiveAppBar() {
       navigate('/archives');
     } else if (page === 'Main Page') {
       navigate('/main');
+    } else if (page === 'Admins') {
+      navigate('/admins');
     }
   };
 
@@ -193,7 +204,12 @@ function ResponsiveAppBar() {
               <Button
                 key={page}
                 component={NavLink}
-                to={page === 'Home' ? '/' : page === 'Archived' ? '/archives' : '/main'}
+                to={
+                  page === 'Home' ? '/' : 
+                  page === 'Archived' ? '/archives' : 
+                  page === 'Main Page' ? '/main' :
+                  page === 'Admins' ? '/admins' : '/'
+                }
                 onClick={handleCloseNavMenu}
                 sx={{ my: 2, color: 'white', display: 'block' }}
               >
